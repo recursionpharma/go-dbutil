@@ -37,3 +37,25 @@ func GetDriver(dbURL string) (string, error) {
 	}
 	return driver, nil
 }
+
+// Exists wraps a query with a simple exists check,
+//  returning a bool, a la
+//    SELECT EXISTS (
+//      -- subquery
+//    )
+//  returning a bool
+//
+// example usage:
+//
+//   if Exists("SELECT * FROM foo WHERE bar = 'baz'") {
+//		// do something
+//   }
+func Exists(db *sql.DB, q string, args ...interface{}) (bool, error) {
+	var exists bool
+	err := db.QueryRow(fmt.Sprintf("SELECT EXISTS(%s)", q), args...).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return exists, err
+	}
+
+	return exists, nil
+}

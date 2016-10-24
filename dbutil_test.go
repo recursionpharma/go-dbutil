@@ -61,3 +61,43 @@ func TestGetDriver(t *testing.T) {
 		})
 	})
 }
+
+func TestExists(t *testing.T) {
+	gp := ghost_postgres.New()
+	defer gp.Terminate()
+	if err := gp.Prepare(); err != nil {
+		t.Fatal(err)
+	}
+	db, err := Connect(gp.URL())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+		CREATE TABLE foo (
+			bar VARCHAR(10)
+		);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	Convey("If the query returns rows", t, func() {
+		if _, err := db.Exec("INSERT INTO foo ( bar ) VALUES ( 'baz' );"); err != nil {
+			t.Fatal(err)
+		}
+		b, err := Exists(db, "SELECT 1 FROM foo WHERE bar = 'baz'")
+		Convey("No error should be returned", func() { So(err, ShouldBeNil) })
+		Convey("It returns true", func() { So(b, ShouldBeTrue) })
+	})
+
+	Convey("If the query doesn't return rows", t, func() {
+		b, err := Exists(db, "SELECT 1 FROM foo WHERE bar = 'quux'")
+		Convey("No error should be returned", func() { So(err, ShouldBeNil) })
+		Convey("It returns false", func() { So(b, ShouldBeFalse) })
+	})
+
+	Convey("If the query errors", t, func() {
+		b, err := Exists(db, "kaboom!")
+		Convey("An error should be returned", func() { So(err, ShouldNotBeNil) })
+		Convey("Result should be false", func() { So(b, ShouldBeFalse) })
+	})
+}
