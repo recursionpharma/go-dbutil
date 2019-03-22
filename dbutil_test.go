@@ -1,7 +1,6 @@
 package dbutil
 
 import (
-	"os"
 	"testing"
 
 	"github.com/recursionpharma/ghost-postgres"
@@ -104,7 +103,7 @@ func TestExists(t *testing.T) {
 }
 
 func TestCloseTx(t *testing.T) {
-	db := MustConnect(os.Getenv("postgres://test-db-url"))
+	db := MustConnect("postgres://test-db-url")
 	defer db.Close()
 
 	Convey("Given a valid DB connection", t, func() {
