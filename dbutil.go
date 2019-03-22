@@ -110,14 +110,3 @@ func (w *wdb) Beginx() (WrappedTx, error) {
 	tx, err := w.DB.Beginx()
 	return WrappedTx(tx), err
 }
-
-func CloseTx(tx WrappedTx, currentErr *error) error {
-	var err error
-	if *currentErr != nil {
-		err = tx.Rollback()
-	} else {
-		err = tx.Commit()
-	}
-
-	return err
-}
