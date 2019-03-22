@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // Connect connects to the database specified by the dbURL.
@@ -58,4 +61,63 @@ func Exists(db *sql.DB, q string, args ...interface{}) (bool, error) {
 	}
 
 	return exists, nil
+}
+
+type SQLReader interface {
+	sqlx.Queryer
+	QueryRow(string, ...interface{}) *sql.Row
+	Select(interface{}, string, ...interface{}) error
+	Get(interface{}, string, ...interface{}) error
+	Rebind(string) string
+}
+
+type SQLReadWriter interface {
+	SQLReader
+	sqlx.Execer
+	Preparex(string) (*sqlx.Stmt, error)
+	NamedExec(string, interface{}) (sql.Result, error)
+}
+
+type WrappedDB interface {
+	SQLReadWriter
+	Beginx() (WrappedTx, error)
+	Close() error
+}
+
+type WrappedTx interface {
+	SQLReadWriter
+	Commit() error
+	Rollback() error
+}
+
+type wdb struct {
+	*sqlx.DB
+}
+
+func MustConnect(dbURL string) WrappedDB {
+	driver, err := GetDriver(dbURL)
+	if err != nil {
+		panic(err)
+	}
+	db := sqlx.MustConnect(driver, dbURL)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetMaxOpenConns(200) // 200 open connections should be good enough for anyone
+
+	return &wdb{db}
+}
+
+func (w *wdb) Beginx() (WrappedTx, error) {
+	tx, err := w.DB.Beginx()
+	return WrappedTx(tx), err
+}
+
+func CloseTx(tx WrappedTx, currentErr *error) error {
+	var err error
+	if *currentErr != nil {
+		err = tx.Rollback()
+	} else {
+		err = tx.Commit()
+	}
+
+	return err
 }

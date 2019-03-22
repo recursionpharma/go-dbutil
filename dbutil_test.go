@@ -1,6 +1,7 @@
 package dbutil
 
 import (
+	"os"
 	"testing"
 
 	"github.com/recursionpharma/ghost-postgres"
@@ -101,3 +102,78 @@ func TestExists(t *testing.T) {
 		Convey("Result should be false", func() { So(b, ShouldBeFalse) })
 	})
 }
+
+func TestCloseTx(t *testing.T) {
+	db := MustConnect(os.Getenv("test-db-url"))
+	defer db.Close()
+
+	Convey("Given a valid DB connection", t, func() {
+		if _, err := db.Exec("CREATE TABLE test (id SERIAL NOT NULL, PRIMARY KEY (id));"); err != nil {
+			t.Fatal(err)
+		}
+
+		Reset(func() {
+			if _, err := db.Exec("DROP TABLE test"); err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		Convey("it commits on success", func() {
+			tx, err := db.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				err = CloseTx(tx, &err)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var cnt int
+				err = db.Get(&cnt, "SELECT COUNT(1) FROM test")
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				So(cnt, ShouldEqual, 1)
+			}()
+
+			_, err = tx.Exec("INSERT INTO test VALUES (1)")
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+
+		Convey("it rolls back on failure", func() {
+			tx, err := db.Beginx()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				err = CloseTx(tx, &err)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var cnt int
+				err = db.Get(&cnt, "SELECT COUNT(1) FROM test")
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				So(cnt, ShouldEqual, 0)
+			}()
+
+			_, err = tx.Exec("INSERT INTO test VALUES (1)")
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, err = tx.Exec("INSERT INTO test VALUES (1)")
+			if err == nil {
+				t.Fatal("Should not have been able to insert duplicate primary key value")
+			}
+		})
+	})
+}
+
