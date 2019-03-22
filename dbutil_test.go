@@ -104,7 +104,7 @@ func TestExists(t *testing.T) {
 }
 
 func TestCloseTx(t *testing.T) {
-	db := MustConnect(os.Getenv("test-db-url"))
+	db := MustConnect(os.Getenv("postgres://test-db-url"))
 	defer db.Close()
 
 	Convey("Given a valid DB connection", t, func() {
