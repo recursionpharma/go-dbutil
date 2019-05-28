@@ -69,11 +69,11 @@ type SQLReader interface {
 	Select(interface{}, string, ...interface{}) error
 	Get(interface{}, string, ...interface{}) error
 	Rebind(string) string
+	Exec(string, ...interface{}) (sql.Result, error) // to declare & close cursor
 }
 
 type SQLReadWriter interface {
 	SQLReader
-	sqlx.Execer
 	Preparex(string) (*sqlx.Stmt, error)
 	NamedExec(string, interface{}) (sql.Result, error)
 }
