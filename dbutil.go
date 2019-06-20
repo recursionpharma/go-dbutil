@@ -82,6 +82,7 @@ type WrappedDB interface {
 	SQLReadWriter
 	Beginx() (WrappedTx, error)
 	Close() error
+	OpenConnections() int
 }
 
 type WrappedTx interface {
@@ -109,4 +110,8 @@ func MustConnect(dbURL string) WrappedDB {
 func (w *wdb) Beginx() (WrappedTx, error) {
 	tx, err := w.DB.Beginx()
 	return WrappedTx(tx), err
+}
+
+func (w wdb) OpenConnections() int {
+	return w.DB.Stats().OpenConnections
 }
