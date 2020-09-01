@@ -45,7 +45,7 @@ func TestGetDriver(t *testing.T) {
 		Convey("If it doesn't contain '://'", func() {
 			driver, err := GetDriver("foo")
 			Convey("No driver should be returned", func() { So(driver, ShouldBeEmpty) })
-			Convey("An error should be returned", func() { So(err, ShouldNotBeNil) })
+			Convey("An erfror should be returned", func() { So(err, ShouldNotBeNil) })
 			Convey("The error message should contain...", func() { So(err.Error(), ShouldContainSubstring, "is missing '://'") })
 		})
 		Convey("If the driver is empty", func() {
