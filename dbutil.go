@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/honeycombio/beeline-go/wrappers/hnysqlx"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -74,7 +75,7 @@ type SQLReader interface {
 type SQLReadWriter interface {
 	SQLReader
 	sqlx.Execer
-	Preparex(string) (*sqlx.Stmt, error)
+	Preparex(string) (*hnysqlx.Stmt, error)
 	NamedExec(string, interface{}) (sql.Result, error)
 }
 
@@ -92,7 +93,7 @@ type WrappedTx interface {
 }
 
 type wdb struct {
-	*sqlx.DB
+	*hnysqlx.DB
 }
 
 func MustConnect(dbURL string) WrappedDB {
@@ -104,7 +105,7 @@ func MustConnect(dbURL string) WrappedDB {
 	db.SetConnMaxLifetime(30 * time.Minute)
 	db.SetMaxOpenConns(200) // 200 open connections should be good enough for anyone
 
-	return &wdb{db}
+	return &wdb{hnysqlx.WrapDB(db)}
 }
 
 func (w *wdb) Beginx() (WrappedTx, error) {
